@@ -8,7 +8,7 @@
 			$entry_date=date('Y-m-d',strtotime($_POST['entry_date']));
 			if(isset($_SESSION['existing_order'])){
 				$i=0;
-				$dao->updateClientOrderById($entry_date,$_SESSION['existing_order']);
+				$dao->updateClientOrderById($entry_date,$_SESSION['existing_order'],$_SESSION['log_user']);
 				$dao->removeSalesOderDetailsByOrderId($_SESSION['existing_order']);
 				foreach($_POST['product'] as $value){
 					if(isset($_POST['product'][$i]) && isset($_POST['quantity'][$i]) && isset($_POST['price'][$i]) && isset($_POST['amount'][$i])){
@@ -33,7 +33,7 @@
 		}
 		$entry_date=date('Y-m-d',strtotime($_POST['entry_date']));
 		if($allowSale==1){
-		$lastId=$dao->saveSalesOrder($entry_date,0);
+		$lastId=$dao->saveSalesOrder($entry_date,0,$_SESSION['log_user']);
 		$i=0;
 		foreach($_POST['product'] as $value) {
 		if(isset($_POST['product'][$i]) && isset($_POST['quantity'][$i]) && isset($_POST['price'][$i]) && isset($_POST['amount'][$i])){
@@ -42,12 +42,9 @@
 		}
 		$i++;
 		}
-		$_SESSION['total']=$_POST['total'];
-		$_SESSION['paid']=$_POST['paid'];
-		$_SESSION['balance']=$_SESSION['paid']-$_SESSION['total'];
-		//unset($_SESSION['salesOrder']);
+		unset($_SESSION['salesOrder']);
 		unset($_SESSION['salesOrderUpdated']);
-		header('Location:receipt.php');
+		header('Location:receipt.php?SelectedOrder='.$lastId.'&total='.$_POST['total'].'&paid='.$_POST['paid']);
 	}
 	}
   ?>
@@ -162,14 +159,9 @@ $("#paid").change(function(){
 	</script>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu(1);
-    ?>
-  	<div id="menu_main">
-			<a href="cash_sale.php" id="item_selected">Cash Sale</a>
-			<a href="credit_sale.php">Credit Sale</a>
-			<a href="client_list.php">Client List</a>
-      </div>
-			<?php
+    <?PHP
+		$_SESSION['tab_no']=1;
+		$dao->includeMenu($_SESSION['tab_no']);
 			if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){
 				if(isset($_REQUEST['clear_order'])){
 					unset($_SESSION['salesOrder']);
@@ -208,7 +200,7 @@ $("#paid").change(function(){
 			}
 
 
-			echo '<form class="form-signin" method="POST"  action="'.$_SERVER['PHP_SELF'].'" id="sales_order_cart_form">';
+			echo '<form method="POST"  action="'.$_SERVER['PHP_SELF'].'" id="sales_order_cart_form">';
 				if(isset($_GET['add_cart'])){
 				$SearchString =$_GET['add_cart'];
 				$product=$dao->getInventoryItemByName($SearchString);
@@ -227,7 +219,7 @@ $("#paid").change(function(){
 						if ($AlreadyOnThisCart!=1)
 						{
 							$profit=$product['selling_price']-$product['buying_price'];
-							$discount=0.5*$profit;
+							$discount=0.05*$profit;
 							$_SESSION['salesOrder']->add_to_cart($product['id'],1,$product['description'],$product['selling_price'],
 							$discount,0,0,0,0,$product['buying_price'],$product['name'],-1);
 						}
@@ -248,7 +240,7 @@ $("#paid").change(function(){
  					if (count($_SESSION['salesOrder']->LineItems)>0)
  					{
  				?>
- 				<table id="sales_order_table" style="border-spacing:2px;border-collapse:separate;width:100%;">
+ 				<table class="table table-condensed" id="sales_order_table" >
  					<thead>
              <tr>
  							<th>Product</th>
@@ -290,12 +282,14 @@ $("#paid").change(function(){
   				 </td>
  				 <td><input type="text"  class="form-control discount" placeholder="Discount"
   					 name="discount[]" id="discount_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;" value="<?php echo $order->Discount ?>"
- 					 required="" readonly=""/>
+ 					 required="" />
   				 </td>
  				 <td><input type="text"  class="form-control amount" placeholder="Amount"
   					 name="amount[]" id="amount_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;" required="" readonly=""/>
   				 </td>
  				 <?php
+				 echo "<td><a href='".$_SERVER['PHP_SELF']."?"."Delete=".$order->LineNumber ."'>
+				<span class='glyphicon glyphicon-trash'></span></a></td>";
  				echo '</tr>';
  			 }?>
          </tbody>
@@ -310,7 +304,7 @@ $("#paid").change(function(){
 					<label for="total">Balance</label>
 					<input type="number" class="form-control" id="balance" name="balance" readonly=""/>
 				</div>
-				<div style="clear: both;">
+				<div style="clear: both;"></div>
  				<?php }
 				echo '<br><input type="text" class="form-control" name="product_search" id="product_search"
 				placeholder="Type three characters to display product" />
@@ -332,7 +326,7 @@ $("#paid").change(function(){
 				<strong>You do not have permission to access this page, please confirm with the system administrator</strong>
 			</div>';
 		}
-		echo '</br></br>';
+
 			require 'footer.php';?>
   </body>
   </html>

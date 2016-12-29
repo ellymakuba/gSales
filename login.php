@@ -41,7 +41,8 @@
 	<meta charset="utf-8">
 </head>
 	<?PHP $dao->includeHead('Login') ?>
-	<body class="container">
+	<body class="container" style="background:#bd7874;">
+		<h2 style="text-align:center;font-weight:bold;color:white;">Welcome to webafriq POS</h2>
 		<div id="login">
 			<form class="form-signin" action="login.php" method="post">
 				<div class="form-inline">

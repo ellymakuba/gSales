@@ -135,6 +135,11 @@ public function fingerprint(){
               container: "form"
             });
       });
+      $(document).ready(function(){
+        $("#menu_main a").on("click",function(){
+          $(this).attr("id","item_selected");
+        })
+      });
 			</script>
       <style type="text/css">
       	#size
@@ -151,6 +156,11 @@ public function fingerprint(){
       	{
           padding: 15px;
           margin: 0 auto;
+          background: #f2f2f2;
+        	-moz-border-radius:10px;
+          border-radius:10px;
+          margin-bottom:20px;
+          border:8px groove gray;
           }
       	.form-signin .form-signin-heading,
           .form-signin .checkbox
@@ -219,6 +229,43 @@ public function fingerprint(){
       }
 			echo '</ul>
 		</div>';
+    if ($tab_no == 1){
+      echo '<div id="menu_main">
+  			<a href="cash_sale.php" id="item_selected">Cash Sale</a>
+  			<a href="credit_sale.php">Credit Sale</a>
+  			<a href="client_list.php">Client List</a>
+  			<a href="manage_orders.php">Manage Orders</a>
+        </div>';
+    }
+    else if($tab_no == 2){
+      echo '<div id="menu_main">
+    		<a href="manage_inventory.php">Product List</a>
+    		<a href="product_details.php">Product Details</a>
+    		<a href="purchase_order_list.php">Purchase Order List</a>
+    		<a href="purchase_order.php">Purchase Order</a>
+        </div>';
+    }
+    else if($tab_no == 3){
+      echo '<div id="menu_main">
+      <a href="view_reports.php">Inventory Value</a>
+      <a href="reorder_level.php">Reorder Level</a>
+      <a href="monthly_sales.php">Monthly Sales</a>
+      <a href="monthly_profit.php">Monthly Profits</a>
+      <a href="sales_breakdown.php">Sales Breakdown</a>
+      <a href="product_sales_history.php">Sales History</a>
+      </div>';
+    }
+    else if($tab_no == 4){
+      echo '<div id="menu_main">
+      <a href="manage_settings.php">Users List</a>
+			<a href="user.php" >User</a>
+      <a href="roles.php">Roles</a>
+			<a href="client_list.php">Client List</a>
+			<a href="client.php">Client</a>
+			<a href="product_category_list.php">Category List</a>
+			<a href="product_category.php">Category</a>
+      </div>';
+    }
 	}
 
 /**
@@ -235,12 +282,36 @@ public function fingerprint(){
 			$row_color = 0;
 		}
 	}
-
-  function getAllProducts(){
+  function getProductsCount(){
+      try{
+        $stmt=$this->conn->prepare("SELECT COUNT(*) as count FROM product");
+        $stmt->execute();
+        $stmt->setFetchMode(PDO::FETCH_ASSOC);
+        return $stmt->fetch();
+      }
+      catch(PDOException $e){
+  			echo $e->getMessage();
+  		}
+  }
+  function getAllProducts($start,$numberOfRecords){
     try{
       $stmt=$this->conn->prepare("SELECT p.*,
       (SELECT inv.quantity FROM inventory inv WHERE inv.product_id=p.id) as quantity
-      FROM product p ");
+      FROM product p ORDER BY p.name LIMIT ?,?");
+      $params=array($start,$numberOfRecords);
+      $stmt->execute($params);
+      $resultSet=$stmt->fetchALL();
+  		return $resultSet;
+    }
+    catch(PDOException $e){
+			echo $e->getMessage();
+		}
+  }
+  function getAllProductsBelowReorderLevel(){
+    try{
+      $stmt=$this->conn->prepare("SELECT p.*,inv.quantity FROM product p
+      INNER JOIN inventory inv ON p.id=inv.product_id
+      WHERE quantity<reorder_level");
       $stmt->execute();
       $resultSet=$stmt->fetchALL();
   		return $resultSet;
@@ -321,7 +392,9 @@ public function fingerprint(){
 	}
   function getAllSalesOrders(){
     try{
-      $stmt=$this->conn->prepare("SELECT * FROM sales_order where  (cleared=? OR complete_delivery=?)");
+      $stmt=$this->conn->prepare("SELECT so.*,
+      (SELECT SUM(sod.amount) as amount FROM sales_order_details sod WHERE so.sales_order_id=sod.sales_order_id) as total
+      FROM sales_order so ORDER BY sales_order_id DESC");
       $params=array(0,0);
       $stmt->execute($params);
       $resultSet=$stmt->fetchALL();
@@ -559,10 +632,10 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function saveSalesOrder($entry_date,$client){
+  function saveSalesOrder($entry_date,$client,$user){
     try{
-      $stmt=$this->conn->prepare("INSERT INTO sales_order (date_required,client) VALUES (?,?)");
-      $params=array($entry_date,$client);
+      $stmt=$this->conn->prepare("INSERT INTO sales_order (date_required,client,user_name) VALUES (?,?,?)");
+      $params=array($entry_date,$client,$user);
       $stmt->execute($params);
       return $this->conn->lastInsertId();
     }
@@ -707,7 +780,7 @@ public function fingerprint(){
   }
   function getSalesOderDetailsByOrderId($id){
     try{
-      $stmt=$this->conn->prepare("SELECT sod.discount,sod.buying_price,sod.quantity,sod.quantity_delivered,sod.price,p.description,p.name,sod.payment,p.id FROM  sales_order_details sod
+      $stmt=$this->conn->prepare("SELECT sod.discount,sod.buying_price,sod.quantity,sod.price,p.description,p.name,sod.payment,p.id FROM  sales_order_details sod
       INNER JOIN product p ON sod.product_id=p.id
       WHERE sales_order_id=?");
       $params=array($id);
@@ -728,10 +801,10 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function updateClientOrderById($date,$id){
+  function updateClientOrderById($date,$id,$user){
     try{
-      $stmt=$this->conn->prepare("UPDATE sales_order SET date_required=? WHERE sales_order_id=?");
-      $params=array($date,$id);
+      $stmt=$this->conn->prepare("UPDATE sales_order SET date_required=?,updated_by=? WHERE sales_order_id=?");
+      $params=array($date,$id,$user);
       $stmt->execute($params);
     }
     catch(PDOException $e){
@@ -1033,13 +1106,33 @@ public function fingerprint(){
     try{
       $startDate=date('Y-m-d',strtotime($startDate));
       $endDate=date('Y-m-d',strtotime($endDate));
-      $stmt=$this->conn->prepare("SELECT p.name,SUM(sod.amount) as sales,SUM(sod.discount) as discount,SUM(sod.payment) as payment,
-      SUM(sod.profit) as profit
+      $stmt=$this->conn->prepare("SELECT p.name,SUM(sod.discount) as discount,SUM(sod.amount) as sales,SUM(sod.payment) as payment,
+      SUM(sod.profit) as profit,SUM(sod.quantity) as qsold
       FROM sales_order_details sod INNER JOIN sales_order so ON sod.sales_order_id=so.sales_order_id
       INNER JOIN product p ON sod.product_id=p.id
       WHERE so.date_required BETWEEN ? AND ?
-      GROUP BY sod.product_id");
+      GROUP BY sod.product_id
+      ORDER BY qsold DESC");
       $params=array($startDate,$endDate);
+      $stmt->execute($params);
+      return $stmt->fetchALL();
+    }
+    catch(PDOException $e){
+			echo $e->getMessage();
+		}
+  }
+  function getProductSalesHistory($product,$startDate,$endDate){
+    try{
+      $startDate=date('Y-m-d',strtotime($startDate));
+      $endDate=date('Y-m-d',strtotime($endDate));
+      $stmt=$this->conn->prepare("SELECT p.name,SUM(sod.amount) as sales,SUM(sod.discount) as discount,SUM(sod.payment) as payment,
+      SUM(sod.profit) as profit,so.date_required,SUM(sod.quantity) as qsold
+      FROM sales_order_details sod
+      INNER JOIN sales_order so ON sod.sales_order_id=so.sales_order_id
+      INNER JOIN product p ON sod.product_id=p.id
+      WHERE p.id=? AND so.date_required BETWEEN ? AND ?
+      GROUP BY so.date_required");
+      $params=array($product,$startDate,$endDate);
       $stmt->execute($params);
       return $stmt->fetchALL();
     }

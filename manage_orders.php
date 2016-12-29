@@ -8,12 +8,8 @@
   <?PHP $dao->includeHead('Sales Order List',0) ?>
   </head>
   <body class="container">
-  <?PHP $dao->includeMenu(1); ?>
-	<div id="menu_main">
-    <a href="manage_orders.php" id="item_selected">Uncleared sales Orders</a>
-		<a href="client_orders_list.php">Client Orders List</a>
-    </div>
-		<?php if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){ ?>
+  <?PHP $dao->includeMenu($_SESSION['tab_no']);
+	 if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){ ?>
   <div class="table-responsive">
     <div class="col-sm-3 col-md-3 pull-left">
           <form class="navbar-form" role="search">
@@ -25,15 +21,12 @@
           </div>
           </form>
   </div>
-  <div class="col-sm-3 col-md-3 pull-right">
-    <a href="sales_order.php" class="btn btn-default btn-primary">New Sales Order</a>
-  </div>
   <table class="table table-striped">
   <tr>
   <form method="POST">
-    <th>#</th>
-    <th>Date Required</th>
-    <th>Client</th>
+    <th>Edit</th>
+    <th>Date</th>
+    <th>Amount</th>
 		<th>Client</th>
   </form>
   </tr>
@@ -41,31 +34,53 @@
   if(isset($_REQUEST['srch-term'])){
     $salesOrders=$dao->getClientSalesOrders($_REQUEST['srch-term']);
     foreach($salesOrders as $order){
-    printf("<tr><td><a href=\"sales_order.php?SelectedOrder=%s\">Dispatch</a></td>
+			$client='No';
+			if($order['client']==1){
+			$client='Yes';
+			}
+    printf("<tr><td><a href=\"sales_order.php?SelectedOrder=%s&client=%s\">".$order['sales_order_id']."</a></td>
     <td>%s</td>
-		<td><a href=\"sales_order.php?updateOrder=%s\">Update</a></td>
+		<td>%s</td>
 		<td>%s</td>
     </tr>",
     $order['sales_order_id'],
-    $order['date_required'],
-		$order['sales_order_id'],
-    $order['client']
+		$order['client'],
+		$order['date_required'],
+		$order['total'],
+    $client
     );
     }
   }
   else{
     $salesOrders=$dao->getAllSalesOrders();
 		foreach($salesOrders as $order){
-      printf("<tr><td><a href=\"sales_order.php?SelectedOrder=%s\">Dispatch</a></td>
+			$client='No';
+			if($order['client']==1){
+			$client='Yes';
+			printf("<tr><td><a href=\"cash_sale.php?SelectedOrder=%s\">".$order['sales_order_id']."</a></td>
+	    <td>%s</td>
 			<td>%s</td>
-			<td><a href=\"sales_order.php?updateOrder=%s\">Update</a></td>
 			<td>%s</td>
 	    </tr>",
 	    $order['sales_order_id'],
-	    $order['date_required'],
-			$order['sales_order_id'],
-	    $order['client']
+			$order['date_required'],
+			$order['total'],
+	    $client
+	    );
+			}
+			else{
+    printf("<tr><td><a href=\"cash_sale.php?SelectedOrder=%s&client=%s\">".$order['sales_order_id']."</a></td>
+    <td>%s</td>
+		<td>%s</td>
+		<td>%s</td>
+    </tr>",
+    $order['sales_order_id'],
+		$order['client'],
+		$order['date_required'],
+		$order['total'],
+    $client
     );
+	}
     }
   }
   ?>
@@ -77,6 +92,6 @@
 				<strong>You do not have permission to access this page, please confirm with the system administrator</strong>
 			</div>';
 		}
-		require 'footer.php'; ?>		
+		require 'footer.php'; ?>
   </body>
   </html>

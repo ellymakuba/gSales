@@ -52,14 +52,7 @@
 	</script>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu(2); ?>
-  	<div id="menu_main">
-			<a href="manage_inventory.php">Product List</a>
-			<a href="product_details.php" id="item_selected">Product Details</a>
-			<a href="purchase_order_list.php">Purchase Order List</a>
-			<a href="purchase_order.php">Purchase Order</a>
-      </div>
-      <?php
+    <?PHP $dao->includeMenu($_SESSION['tab_no']); 
 			if(!isset($_SESSION['errors'])){
 				$_SESSION['errors']=array();
 			}

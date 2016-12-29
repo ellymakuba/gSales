@@ -10,14 +10,10 @@
   <?PHP $dao->includeHead('Product List',0) ?>
   </head>
   <body class="container">
-  <?PHP $dao->includeMenu(2); ?>
-	<div id="menu_main">
-		<a href="manage_inventory.php" id="item_selected">Product List</a>
-		<a href="product_details.php">Product Details</a>
-		<a href="purchase_order_list.php">Purchase Order List</a>
-		<a href="purchase_order.php">Purchase Order</a>
-    </div>
-	<?php	if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
+  <?PHP
+	$_SESSION['tab_no']=2;
+	$dao->includeMenu($_SESSION['tab_no']);
+		if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
   <div class="table-responsive">
     <div class="col-sm-3 col-md-3 pull-left">
           <form class="navbar-form" role="search">
@@ -32,15 +28,15 @@
   <div class="col-sm-3 col-md-3 pull-right">
     <a href="product_details.php" class="btn btn-default btn-primary">New Product</a>
   </div>
-  <table class="table table-striped">
+  <table class="table table-condensed table-striped">
   <tr>
   <form method="POST">
             <th>Action</th>
             <th>Name</th>
-            <th>Description</th>
             <th>Buying Price</th>
             <th>Selling Price</th>
 						<th>Stock</th>
+						<th>Reorder Level</th>
   </form>
   </tr>
   <?php
@@ -57,15 +53,29 @@
     </tr>",
   $product['id'],
   $product['name'],
-  $product['description'],
   $product['buying_price'],
   $product['selling_price'],
-	$product['quantity']
+	$product['quantity'],
+	$product['reorder_level']
     );
     }
   }
   else{
-    $products=$dao->getAllProducts();
+		if (isset($_GET['pageno'])) {
+					 $pageno = $_GET['pageno'];
+				} else {
+					 $pageno = 1;
+				}
+				$numofrows=$dao->getProductsCount();;
+				$targetpage = "manage_inventory.php";
+				$rows_per_page = 12;
+				$lastpage  = ceil($numofrows['count']/$rows_per_page);
+				$pageno = (int)$pageno;
+				if ($pageno > $lastpage) {
+					 $pageno = $lastpage;
+				} // if
+		$start =($pageno - 1) * $rows_per_page;
+    $products=$dao->getAllProducts($start,$rows_per_page);
     foreach($products as $product){
       printf("<tr><td><a href=\"product_details.php?SelectedProduct=%s\">Edit</a></td>
     <td>%s</td>
@@ -76,12 +86,29 @@
     </tr>",
 		$product['id'],
 	  $product['name'],
-	  $product['description'],
 	  $product['buying_price'],
 	  $product['selling_price'],
-		$product['quantity']
+		$product['quantity'],
+		$product['reorder_level']
     );
     }
+		echo "<tr><td>";
+		if ($pageno == 1) {
+				   echo "<span class='glyphicon glyphicon-fast-backward'>";
+				} else {
+				   echo "<a href='{$_SERVER['PHP_SELF']}?pageno=1'><span class='glyphicon glyphicon-fast-backward'></span></a> ";
+				   $prevpage = $pageno-1;
+				   echo " <a href='{$_SERVER['PHP_SELF']}?pageno=$prevpage'><span class='glyphicon glyphicon-backward'></span></a> ";
+				}
+				echo " ($pageno of $lastpage) ";
+				if ($pageno == $lastpage) {
+				   echo "<span class='glyphicon glyphicon-fast-forward'> ";
+				} else {
+				   $nextpage = $pageno+1;
+				   echo " <a href='{$_SERVER['PHP_SELF']}?pageno=$nextpage'><span class='glyphicon glyphicon-forward'></span></a> ";
+				   echo " <a href='{$_SERVER['PHP_SELF']}?pageno=$lastpage'><span class='glyphicon glyphicon-fast-forward'></span></a> ";
+				}
+				echo "</td></tr>";
   }
    ?>
   </table>

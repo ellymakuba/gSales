@@ -179,15 +179,7 @@ document.getElementById("total").value=tAmount;
 	</script>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu(2);
-    ?>
-  	<div id="menu_main">
-			<a href="manage_inventory.php">Product List</a>
-			<a href="product_details.php">Product Details</a>
-			<a href="purchase_order_list.php">Purchase Order List</a>
-			<a href="purchase_order.php" id="item_selected">Purchase Order</a>
-      </div>
-			<?php
+    <?PHP $dao->includeMenu($_SESSION['tab_no']);
 			if(isset($_REQUEST['clear_order'])){
 				unset($_SESSION['purchaseOrder']);
 				unset($_SESSION['existing_order']);

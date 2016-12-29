@@ -8,7 +8,7 @@
   <?PHP $dao->includeHead('Sales Order List',0) ?>
   </head>
   <body class="container">
-  <?PHP $dao->includeMenu(1); ?>
+  <?PHP $dao->includeMenu($_SESSION['tab_no']); ?>
 	<div id="menu_main">
 		<a href="manage_orders.php">sales Order List</a>
 		<a href="sales_order.php">Sales Order</a>

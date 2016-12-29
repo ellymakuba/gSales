@@ -141,7 +141,7 @@ document.getElementById("discount_sum").value=discount_sum;
 	</script>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu(1);
+    <?PHP $dao->includeMenu($_SESSION['tab_no']);
     ?>
   	<div id="menu_main">
 			<a href="products.php">Products</a>

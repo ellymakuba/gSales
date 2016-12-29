@@ -8,12 +8,8 @@
   <?PHP $dao->includeHead('Sales Order List',0) ?>
   </head>
   <body class="container">
-  <?PHP $dao->includeMenu(1); ?>
-	<div id="menu_main">
-		<a href="products.php">Products</a>
-		<a href="client_statement.php" id="item_selected">Statement</a>
-    </div>
-		<?php if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
+  <?PHP $dao->includeMenu($_SESSION['tab_no']);
+	if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
   <div class="table-responsive">
   <table class="table table-striped">
   <?php

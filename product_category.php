@@ -9,17 +9,7 @@
 	<?PHP $dao->includeHead('Settings | Category Details', 0) ?>
 	</head>
 	<body class="container">
-		<?PHP $dao->includeMenu(4); ?>
-		<div id="menu_main">
-			<a href="manage_settings.php">Users List</a>
-			<a href="user.php" >User</a>
-      <a href="roles.php">Roles</a>
-			<a href="client_list.php">Client List</a>
-			<a href="client.php">Client</a>
-			<a href="product_category_list.php">Category List</a>
-			<a href="product_category.php" id="item_selected">Category</a>
-		</div>
-		<?php
+		<?PHP $dao->includeMenu($_SESSION['tab_no']); 
 		if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){
 		if(isset($_POST["save"])){
 			unset($_SESSION['errors']);

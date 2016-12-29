@@ -10,15 +10,7 @@
 	<?PHP $dao->includeHead('Settings | Clients', 0) ?>
 	</head>
 	<body class="container">
-		<?PHP $dao->includeMenu(4); ?>
-		<div id="menu_main">
-			<a href="manage_settings.php">Users List</a>
-			<a href="user.php">User</a>
-      <a href="roles.php">Roles</a>
-			<a href="client_list.php">Client List</a>
-			<a href="client.php" id="item_selected">Client</a>
-		</div>
-		<?php
+		<?PHP $dao->includeMenu($_SESSION['tab_no']); 
 		if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){
 		if(isset($_POST["save"])){
 			if(isset($_POST['client_name']) && isset($_POST['address']) && isset($_POST['phone']) && isset($_POST['user'])){

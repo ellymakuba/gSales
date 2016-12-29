@@ -8,7 +8,7 @@
 			$entry_date=date('Y-m-d',strtotime($_POST['entry_date']));
 			if(isset($_SESSION['existing_order'])){
 				$i=0;
-				$dao->updateClientOrderById($entry_date,$_SESSION['existing_order']);
+				$dao->updateClientOrderById($entry_date,$_SESSION['existing_order'],$_SESSION['log_user']);
 				$dao->removeSalesOderDetailsByOrderId($_SESSION['existing_order']);
 				foreach($_POST['product'] as $value){
 					if(isset($_POST['product'][$i]) && isset($_POST['quantity'][$i]) && isset($_POST['price'][$i]) && isset($_POST['amount'][$i])){
@@ -26,7 +26,7 @@
 	}
 	if (isset($_POST['sale']) && isset($_POST['entry_date']) && count($_SESSION['salesOrder'])>0){
 		$entry_date=date('Y-m-d',strtotime($_POST['entry_date']));
-		$lastId=$dao->saveSalesOrder($entry_date,$_SESSION['selectedClient']);
+		$lastId=$dao->saveSalesOrder($entry_date,$_SESSION['selectedClient'],$_SESSION['log_user']);
 		$i=0;
 		foreach($_POST['product'] as $value) {
 		if(isset($_POST['product'][$i]) && isset($_POST['quantity'][$i]) && isset($_POST['price'][$i]) && isset($_POST['amount'][$i])){
@@ -152,14 +152,7 @@ $("#paid").change(function(){
 	</script>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu(1);
-    ?>
-  	<div id="menu_main">
-			<a href="cash_sale.php">Cash Sale</a>
-			<a href="credit_sale.php" id="item_selected">Credit Sale</a>
-			<a href="client_list.php">Client List</a>
-      </div>
-			<?php
+    <?PHP $dao->includeMenu($_SESSION['tab_no']);
 			if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){
 				if(isset($_GET['selectedClient'])){
 					$_SESSION['selectedClient']=$_GET['selectedClient'];
@@ -201,7 +194,7 @@ $("#paid").change(function(){
 			}
 
 
-			echo '<form class="form-signin" method="POST"  action="'.$_SERVER['PHP_SELF'].'" id="sales_order_cart_form">';
+			echo '<form method="POST"  action="'.$_SERVER['PHP_SELF'].'" id="sales_order_cart_form">';
 				if(isset($_GET['add_cart'])){
 				$SearchString =$_GET['add_cart'];
 				$product=$dao->getInventoryItemByName($SearchString);
@@ -273,7 +266,7 @@ $("#paid").change(function(){
   				 </td>
  					<td><input type="text"  class="form-control quantity" placeholder="Quantity Ordered"
  						name="quantity[]" id="quantity_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"
- 						value="<?php echo $order->Quantity ?>" required="" readonly=""/></td>
+ 						value="<?php echo $order->Quantity ?>" required="" /></td>
  				 <td><input type="text"  class="form-control" placeholder="Price"
   					 name="price[]" id="price_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;" value="<?php echo $order->Price ?>" readonly/>
   				 </td>
@@ -285,6 +278,8 @@ $("#paid").change(function(){
   					 name="amount[]" id="amount_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;" required="" readonly=""/>
   				 </td>
  				 <?php
+				 echo "<td><a href='".$_SERVER['PHP_SELF']."?"."Delete=".$order->LineNumber ."'>
+				<span class='glyphicon glyphicon-trash'></span></a></td>";
  				echo '</tr>';
  			 }?>
          </tbody>
@@ -299,7 +294,7 @@ $("#paid").change(function(){
 					<label for="total">Balance</label>
 					<input type="number" class="form-control" id="balance" name="balance" readonly=""/>
 				</div>
-				<div style="clear: both;">
+				<div style="clear: both;"></div>
  				<?php }
 				echo '<br><input type="text" class="form-control" name="product_search" id="product_search"
 				placeholder="Type three characters to display product" />

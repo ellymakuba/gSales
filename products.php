@@ -20,7 +20,7 @@ $(document).on("click", "#save", function(e) {
 	</script>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu(1);
+    <?PHP $dao->includeMenu($_SESSION['tab_no']);
 		$categories=$dao->getAllProductCategory();
 		if(!isset($_SESSION['productList'])){
 			$_SESSION['productList'] = new ProductCart();

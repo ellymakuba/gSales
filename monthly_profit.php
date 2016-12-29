@@ -33,13 +33,8 @@
 	</script>
   </head>
   <body class="container">
-  <?PHP $dao->includeMenu(3); ?>
-	<div id="menu_main">
-		<a href="manage_inventory.php">Inventory Value</a>
-		<a href="sales_report.php">Sales Report</a>
-		<a href="profit.php" id="item_selected">Profit Report</a>
-    </div>
-		<?php if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
+  <?PHP $dao->includeMenu($_SESSION['tab_no']);
+	 if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
 		    	<div class="responsive-calendar">
 						<h2 class="form-signin-heading">Daily Profits</h2>
 		        <div class="controls">

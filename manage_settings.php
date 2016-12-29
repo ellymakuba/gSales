@@ -9,19 +9,10 @@
 	<?PHP $dao->includeHead('Settings | Users',1); ?>
 	<body class="container">
 		<?PHP
-				$dao->includeMenu(4);
-		?>
-		<div id="menu_main">
-			<a href="manage_settings.php" id="item_selected">Users List</a>
-			<a href="user.php" >User</a>
-      <a href="roles.php">Roles</a>
-			<a href="client_list.php">Client List</a>
-			<a href="client.php">Client</a>
-			<a href="product_category_list.php">Category List</a>
-			<a href="product_category.php">Category</a>
-		</div>
-		<?php if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
-		<div class="container">
+				$_SESSION['tab_no']=4;
+				$dao->includeMenu($_SESSION['tab_no']);
+				if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){?>
+		<div>
 			<div class="col-sm-3 col-md-3 pull-left">
 	          <form class="navbar-form" role="search">
 	          <div class="input-group">

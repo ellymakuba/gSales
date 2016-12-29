@@ -9,7 +9,7 @@
   <?PHP $dao->includeHead('Sales Receipt',0) ?>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu(1);
+    <?PHP $dao->includeMenu($_SESSION['tab_no']);
     ?>
   	<div id="menu_main">
 			<a href="cash_sale.php">Cash Sale</a>
@@ -37,11 +37,12 @@
 				}
 			}
 			}
+			$balance=$_REQUEST['paid']-$_REQUEST['total'];
 			 ?>
 			 <form class="form-signin" method="POST">
-         <h2 class="form-signin-heading">Paid: <?php echo number_format($_SESSION['paid'],2) ?></h2>
-				 <h2 class="form-signin-heading">Total: <?php echo number_format($_SESSION['total'],2) ?></h2>
-				 <h2 class="form-signin-heading">Balance: <?php echo number_format($_SESSION['balance'],2) ?></h2>
+         <h2 class="form-signin-heading">Paid: <?php echo number_format($_REQUEST['paid'],2) ?></h2>
+				 <h2 class="form-signin-heading">Total: <?php echo number_format($_REQUEST['total'],2) ?></h2>
+				 <h2 class="form-signin-heading">Balance: <?php echo number_format($balance,2) ?></h2>
 			 </form>
 			 <div id="print_area">
          <label for="entry_date">Date</label><?php echo $_SESSION['salesOrder']->orderDate ?>
@@ -77,7 +78,8 @@
          </tbody>
          </table>
 			 </div>
-		<?php }
+		<?php
+	unset($_SESSION['salesOrder']);}
 		else{
 			echo '<div class="alert alert-danger">
 				<strong>You do not have permission to access this page, please confirm with the system administrator</strong>

@@ -9,13 +9,8 @@
 	<?PHP $dao->includeHead('Orders | Clients',1); ?>
 	<body class="container">
 		<?PHP
-				$dao->includeMenu(1);
-		?>
-		<div id="menu_main">
-			<a href="manage_orders.php">Uncleared Sales Order</a>
-			<a href="client_orders_list.php" id="item_selected">Client Orders List</a>
-		</div>
-		<?php if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){ ?>
+				$dao->includeMenu($_SESSION['tab_no']);
+				 if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){ ?>
 		<div class="container">
 			<div class="col-sm-3 col-md-3 pull-left">
 	          <form class="navbar-form" role="search">

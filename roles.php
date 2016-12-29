@@ -14,15 +14,7 @@ if (isset($_GET['SelectedRole'])){
 <?PHP $dao->includeHead('User Roles',0) ?>
 </head>
 <body class="container">
-<?PHP $dao->includeMenu(4); ?>
-<div id="menu_main">
-	<a href="manage_settings.php">Users List</a>
-	<a href="user.php" >User</a>
-	<a href="roles.php" id="item_selected">Roles</a>
-	<a href="client_list.php">Client List</a>
-	<a href="client.php">Client</a>
-	</div>
-<?php
+<?PHP $dao->includeMenu($_SESSION['tab_no']);
 if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){
 if (isset($_POST['submit']) || isset($_GET['remove']) || isset($_GET['add']) ) {
 	$InputError = 0;
@@ -63,7 +55,7 @@ if (isset($_POST['submit']) || isset($_GET['remove']) || isset($_GET['add']) ) {
 }
 if (!isset($SelectedRole)) {
 	$roles=$dao->getAllSecurityRoles();
-	echo '<table class="table table-striped">';
+	echo '<table class="table table-striped table-condensed">';
 	echo "<tr><th>Role</th></tr>";
 	$k=0; //row colour counter
 	foreach($roles as $role)
@@ -99,7 +91,7 @@ echo "<form method='post' class='form-signin' action=" . $_SERVER['PHP_SELF']. "
 if( isset($_POST['SelectedRole'])) {
 	echo "<input type=hidden name='SelectedRole' VALUE='" . $_POST['SelectedRole'] . "'>";
 }
-echo '<table class="table table-striped">';
+echo '<table class="table table-striped table-condensed">';
 if (!isset($_POST['SecRoleName'])) {
 	$_POST['SecRoleName']='';
 }
