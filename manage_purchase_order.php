@@ -22,7 +22,7 @@
           </form>
   </div>
   <div class="col-sm-3 col-md-3 pull-right">
-    <a href="sales_order.php" class="btn btn-default btn-primary">New Purchase Order</a>
+    <a href="purchase_order.php" class="btn btn-default btn-primary">New Purchase Order</a>
   </div>
   <table class="table table-striped">
   <tr>
@@ -47,7 +47,21 @@
     }
   }
   else{
-    $salesOrders=$dao->getAllPurchaseOrders();
+		if (isset($_GET['pageno'])) {
+					 $pageno = $_GET['pageno'];
+				} else {
+					 $pageno = 1;
+				}
+				$numofrows=$dao->getProductsCount();
+				$targetpage = "manage_purchase_order.php";
+				$rows_per_page =8;
+				$lastpage  = ceil($numofrows['count']/$rows_per_page);
+				$pageno = (int)$pageno;
+				if ($pageno > $lastpage) {
+					 $pageno = $lastpage;
+				} // if
+		$start =($pageno - 1) * $rows_per_page;
+    $salesOrders=$dao->getAllPurchaseOrders($start,$rows_per_page,$_SESSION['log_location']['id']);
 		foreach($salesOrders as $order){
     printf("<tr><td><a href=\"purchase_order.php?SelectedOrder=%s\">" .$order['purchase_order_id'] . "</a></td>
     <td>%s</td>

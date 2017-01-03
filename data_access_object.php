@@ -11,11 +11,15 @@ class DAO{
           alert(\''.$text.'\')
         </script>';
 }
-public function getUserByUsernameAndPassword($username, $password){
+public function getUserByUsernameAndPassword($username, $password,$location){
  		$password=sha1($password);
-    $stmt = $this->conn->prepare("SELECT * FROM user,securityroles WHERE user.secroleid = securityroles.secroleid AND user_name = ? AND user_pw LIKE ?");
-		$data=array($username, $password);
-		$stmt->execute($data);
+    $stmt = $this->conn->prepare("SELECT * FROM user u,securityroles sr,user_locations ul
+    WHERE u.secroleid = sr.secroleid
+    AND u.user_name=ul.user_name
+    AND u.user_name = ? AND u.user_pw LIKE ?
+    AND ul.location_id=?");
+		$params=array($username,$password,$location);
+		$stmt->execute($params);
     $stmt->setFetchMode(PDO::FETCH_ASSOC);
 		return $stmt->fetch();
     }
@@ -23,6 +27,18 @@ public function getUserByUsernameAndPassword($username, $password){
       try{
         $stmt=$this->conn->prepare("SELECT * FROM user WHERE user_name LIKE ?");
         $params=array($userName);
+        $stmt->execute($params);
+        $stmt->setFetchMode(PDO::FETCH_ASSOC);
+		    return $stmt->fetch();
+      }
+      catch(PDOException $e){
+        echo $e->getMessage();
+      }
+    }
+    function getLocationById($id){
+      try{
+        $stmt=$this->conn->prepare("SELECT * FROM location WHERE id=?");
+        $params=array($id);
         $stmt->execute($params);
         $stmt->setFetchMode(PDO::FETCH_ASSOC);
 		    return $stmt->fetch();
@@ -136,7 +152,7 @@ public function fingerprint(){
             });
       });
       $(document).ready(function(){
-        $("#menu_main a").on("click",function(){
+        $(document).on("click","#menu_main a",function(){
           $(this).attr("id","item_selected");
         })
       });
@@ -194,7 +210,7 @@ public function fingerprint(){
 		<div id="menu_header">
 			<div id="menu_logout">
 				<ul>
-					<li>'.$_SESSION['log_user'].'
+					<li>'.$_SESSION['log_user']." : ".$_SESSION['log_location']['name'].'
 						<ul>
 							<li><a href="logout.php"><i class="fa fa-sign-out fa-fw"></i> Logout</a></li>
 						</ul>
@@ -225,7 +241,7 @@ public function fingerprint(){
 				echo '><a href="view_reports.php">Reports</a></li>
         <li';
         if ($tab_no == 4) echo ' id="tab_selected"';
-        echo '><a href="manage_settings.php">Settings</a></li>';
+        echo '><a href="manage_users.php">Settings</a></li>';
       }
 			echo '</ul>
 		</div>';
@@ -235,13 +251,13 @@ public function fingerprint(){
   			<a href="credit_sale.php">Credit Sale</a>
   			<a href="client_list.php">Client List</a>
   			<a href="manage_orders.php">Manage Orders</a>
+        <a href="receipt.php">Receipt</a>
         </div>';
     }
     else if($tab_no == 2){
       echo '<div id="menu_main">
     		<a href="manage_inventory.php">Product List</a>
-    		<a href="product_details.php">Product Details</a>
-    		<a href="purchase_order_list.php">Purchase Order List</a>
+    		<a href="manage_purchase_order.php">Manage Purchase Order</a>
     		<a href="purchase_order.php">Purchase Order</a>
         </div>';
     }
@@ -257,13 +273,12 @@ public function fingerprint(){
     }
     else if($tab_no == 4){
       echo '<div id="menu_main">
-      <a href="manage_settings.php">Users List</a>
-			<a href="user.php" >User</a>
-      <a href="roles.php">Roles</a>
-			<a href="client_list.php">Client List</a>
-			<a href="client.php">Client</a>
-			<a href="product_category_list.php">Category List</a>
-			<a href="product_category.php">Category</a>
+      <a href="manage_users.php">Users</a>
+			<a href="manage_location.php" >Locations</a>
+      <a href="manage_role.php">Roles</a>
+      <a href="manage_product.php">Products</a>
+			<a href="manage_client.php">Clients</a>
+			<a href="manage_category.php">Categories</a>
       </div>';
     }
 	}
@@ -282,6 +297,34 @@ public function fingerprint(){
 			$row_color = 0;
 		}
 	}
+  function countInventoryByLocation($location){
+    try{
+      $stmt=$this->conn->prepare("SELECT COUNT(*) as count FROM product p
+      INNER JOIN inventory inv ON p.id=inv.product_id
+      WHERE inv.location_id=?");
+      $params=array($location);
+      $stmt->execute($params);
+      $stmt->setFetchMode(PDO::FETCH_ASSOC);
+      return $stmt->fetch();
+    }
+    catch(PDOException $e){
+			echo $e->getMessage();
+		}
+  }
+  function getAllInventoryByLocation($start,$numberOfRecords,$location){
+    try{
+      $stmt=$this->conn->prepare("SELECT p.*,inv.quantity as quantity FROM product p
+      INNER JOIN inventory inv ON p.id=inv.product_id
+      WHERE inv.location_id=? ORDER BY p.name LIMIT ?,?");
+      $params=array($location,$start,$numberOfRecords);
+      $stmt->execute($params);
+      $resultSet=$stmt->fetchALL();
+  		return $resultSet;
+    }
+    catch(PDOException $e){
+			echo $e->getMessage();
+		}
+  }
   function getProductsCount(){
       try{
         $stmt=$this->conn->prepare("SELECT COUNT(*) as count FROM product");
@@ -295,8 +338,7 @@ public function fingerprint(){
   }
   function getAllProducts($start,$numberOfRecords){
     try{
-      $stmt=$this->conn->prepare("SELECT p.*,
-      (SELECT inv.quantity FROM inventory inv WHERE inv.product_id=p.id) as quantity
+      $stmt=$this->conn->prepare("SELECT p.*
       FROM product p ORDER BY p.name LIMIT ?,?");
       $params=array($start,$numberOfRecords);
       $stmt->execute($params);
@@ -347,7 +389,8 @@ public function fingerprint(){
   }
   function getProductByName($name){
     try{
-      $stmt=$this->conn->prepare("SELECT * FROM product WHERE name LIKE ? LIMIT 1");
+      $stmt=$this->conn->prepare("SELECT * FROM product WHERE name LIKE ?");
+      $name='%'.$name.'%';
       $params=array($name);
       $stmt->execute($params);
       $stmt->setFetchMode(PDO::FETCH_ASSOC);
@@ -369,11 +412,11 @@ public function fingerprint(){
 			echo $e->getMessage();
 		}
   }
-  function updateProduct($productId,$name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel){
+  function updateProduct($productId,$name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel,$unitsPerPack,$packPrice){
 		try{
 			$stmt=$this->conn->prepare("UPDATE product SET name=?,buying_price=?,selling_price=?,
-      description=?,company=?,category=?,reorder_level=? WHERE id=?");
-			$params=array($name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel,$productId);
+      description=?,company=?,category=?,reorder_level=?,units_per_pack=?,buying_price_pack=? WHERE id=?");
+			$params=array($name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel,$unitsPerPack,$packPrice,$productId);
 			$stmt->execute($params);
 		}
 		catch(PDOException $e){
@@ -416,10 +459,11 @@ public function fingerprint(){
 			echo $e->getMessage();
 		}
   }
-  function getAllPurchaseOrders(){
+  function getAllPurchaseOrders($start,$rows_per_page,$location){
     try{
-      $stmt=$this->conn->prepare("SELECT * FROM purchase_order");
-      $stmt->execute();
+      $stmt=$this->conn->prepare("SELECT * FROM purchase_order WHERE location_id=? LIMIT ?,?");
+      $params=array($location,$start,$rows_per_page);
+      $stmt->execute($params);
       $resultSet=$stmt->fetchALL();
   		return $resultSet;
     }
@@ -479,6 +523,26 @@ public function fingerprint(){
 			echo $e->getMessage();
 		}
   }
+  function assignNewUserLocation($user,$location){
+    try{
+      $stmt=$this->conn->prepare("INSERT INTO user_locations (user_name, location_id) VALUES (?,?)");
+      $params=array($user,$location);
+      $stmt->execute($params);
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function removeAssignedUserLocation($user,$location){
+    try{
+      $stmt=$this->conn->prepare("DELETE FROM user_locations WHERE user_name =? AND location_id =?");
+      $params=array($user,$location);
+      $stmt->execute($params);
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
   function removeSecurityGroup($SelectedRole){
     try{
       $stmt=$this->conn->prepare("DELETE FROM securitygroups WHERE secroleid=?");
@@ -520,6 +584,16 @@ public function fingerprint(){
 			echo $e->getMessage();
 		}
   }
+  function getAllLocations(){
+    try{
+      $stmt=$this->conn->prepare("SELECT * FROM location ORDER BY name");
+      $stmt->execute();
+      return $stmt->fetchALL();
+    }
+    catch(PDOException $e){
+			echo $e->getMessage();
+		}
+  }
   function getAllPrivileges(){
     try{
       $stmt=$this->conn->prepare("SELECT tokenid, tokenname FROM securitytokens");
@@ -541,6 +615,17 @@ public function fingerprint(){
 			echo $e->getMessage();
 		}
   }
+  function getLocationAssignedToUser($user){
+    try{
+      $stmt=$this->conn->prepare("SELECT location_id FROM user_locations WHERE user_name LIKE ?");
+      $params=array($user);
+      $stmt->execute($params);
+      return $stmt->fetchALL();
+    }
+    catch(PDOException $e){
+			echo $e->getMessage();
+		}
+  }
   function getRoleById($SelectedRole){
     try{
       $stmt=$this->conn->prepare("SELECT secroleid,secrolename FROM securityroles WHERE secroleid=?");
@@ -553,11 +638,12 @@ public function fingerprint(){
 			echo $e->getMessage();
 		}
   }
-  function addNewProduct($name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel){
+  function addNewProduct($name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel,$unitsPerPack,$packPrice){
     try{
-      $stmt=$this->conn->prepare("INSERT INTO product (name,buying_price,selling_price,description,company,category,reorder_level)
-      VALUES(?,?,?,?,?,?,?)");
-      $params=array($name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel);
+      $stmt=$this->conn->prepare("INSERT INTO product (name,buying_price,selling_price,description,company,category,
+        reorder_level,units_per_pack,buying_price_pack)
+      VALUES(?,?,?,?,?,?,?,?,?)");
+      $params=array($name,$bPrice,$sPrice,$description,$company,$category,$reorderLevel,$unitsPerPack,$packPrice);
       $stmt->execute($params);
       }
     catch(PDOException $e){
@@ -601,14 +687,29 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function getInventoryByName($name){
+  function getInventoryItemByNameAndBatch($id,$batch,$location){
     try{
-      $stmt=$this->conn->prepare("SELECT product.*,SUM(inv.quantity) as stock FROM product
+      $stmt=$this->conn->prepare("SELECT product.*,SUM(inv.quantity) as stock,inv.batch_no,inv.discount FROM product
       INNER JOIN inventory inv ON product.id=inv.product_id
-      WHERE name Like ?
-      GROUP BY inv.product_id");
-      $name='%'.$name.'%';
-      $params=array($name);
+      WHERE inv.product_id= ? AND inv.batch_no=? AND inv.location_id=?
+      GROUP BY inv.product_id LIMIT 1");
+      $params=array($id,$batch,$location);
+      $stmt->execute($params);
+      $stmt->setFetchMode(PDO::FETCH_ASSOC);
+      return $stmt->fetch();
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function getInventoryByName($product,$location){
+    try{
+      $stmt=$this->conn->prepare("SELECT product.*,SUM(inv.quantity) as stock,inv.batch_no,inv.expiry_date FROM product
+      INNER JOIN inventory inv ON product.id=inv.product_id
+      WHERE product.name Like ? AND inv.location_id=? AND inv.quantity>0
+      GROUP BY inv.product_id,inv.batch_no ORDER BY inv.expiry_date");
+      $product='%'.$product.'%';
+      $params=array($product,$location);
       $stmt->execute($params);
       $resultSet=$stmt->fetchALL();
       return $resultSet;
@@ -632,10 +733,10 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function saveSalesOrder($entry_date,$client,$user){
+  function saveSalesOrder($entry_date,$client,$user,$location){
     try{
-      $stmt=$this->conn->prepare("INSERT INTO sales_order (date_required,client,user_name) VALUES (?,?,?)");
-      $params=array($entry_date,$client,$user);
+      $stmt=$this->conn->prepare("INSERT INTO sales_order (date_required,client,user_name,location_id) VALUES (?,?,?,?)");
+      $params=array($entry_date,$client,$user,$location);
       $stmt->execute($params);
       return $this->conn->lastInsertId();
     }
@@ -675,11 +776,12 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function saveClientOrderDetails($lastId,$productId,$quantity,$price,$amount,$discount,$bP,$profit){
+  function saveClientOrderDetails($lastId,$productId,$quantity,$price,$amount,$discount,$bP,$profit,$batch,$tax){
     try{
-      $stmt=$this->conn->prepare("INSERT INTO sales_order_details (sales_order_id,product_id,quantity,price,amount,discount,buying_price,profit)
-       VALUES (?,?,?,?,?,?,?,?)");
-      $params=array($lastId,$productId,$quantity,$price,$amount,$discount,$bP,$profit);
+      $stmt=$this->conn->prepare("INSERT INTO sales_order_details (sales_order_id,product_id,quantity,price,
+        amount,discount,buying_price,profit,batch_no,tax)
+       VALUES (?,?,?,?,?,?,?,?,?,?)");
+      $params=array($lastId,$productId,$quantity,$price,$amount,$discount,$bP,$profit,$batch,$tax);
       $stmt->execute($params);
     }
     catch(PDOException $e){
@@ -698,9 +800,9 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function updatePurchaseOrder($orderId,$productId,$quantity,$batch){
+  function updatePurchaseOrder($orderId,$productId,$number,$batch,$units,$expiry_date){
     try{
-      $stmt=$this->conn->prepare("UPDATE inventory SET quantity=?,batch_no=?
+      $stmt=$this->conn->prepare("UPDATE purchase_order_details SET number_purchased=?,batch_no=?
       WHERE purchase_order_id=?
       AND product_id=?");
       $params=array($quantity,$batch,$orderId,$productId);
@@ -710,12 +812,37 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function addStockToInventory($orderId,$lastId,$batch,$productId,$quantity,$expiryDate){
+  function addStockToInventory($productId,$batch,$quantity,$bonus,$discount){
     try{
-      $stmt=$this->conn->prepare("UPDATE inventory SET quantity=quantity+?,purchase_order_id=?,batch_no=?,expiry_date=?
-      WHERE purchase_order_id=?
-      AND product_id=?");
-      $params=array($quantity,$lastId,$batch,$expiryDate,$orderId,$productId);
+      $number=$number+$bonus;
+      $quantity=$number*$units;
+      $stmt=$this->conn->prepare("UPDATE inventory SET quantity=quantity+?,bonus=bonus+?,discount=?
+      WHERE product_id=? AND batch_no=?");
+      $params=array($quantity,$bonus,$discount,$productId,$batch);
+      $stmt->execute($params);
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function subtractStockFromInventory($productId,$batch,$quantity,$location){
+    try{
+      $stmt=$this->conn->prepare("UPDATE inventory SET quantity=quantity-?
+      WHERE product_id=? AND batch_no=? AND location_id=?");
+      $params=array($quantity,$productId,$batch,$location);
+      $stmt->execute($params);
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function savePurchaseOrderDetails($orderId,$productId,$expiryDate,$batch,$number,$units,$price,$discount,$amount,$bonus){
+    try{
+      $number_received=$number+$bonus;
+      $quantity=$number_received*$units;
+      $stmt=$this->conn->prepare("INSERT INTO purchase_order_details (purchase_order_id,product_id,expiry_date,batch_no,
+      number_purchased,units,quantity,price,discount,amount,bonus) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+      $params=array($orderId,$productId,$expiryDate,$batch,$number,$units,$quantity,$price,$discount,$amount,$bonus);
       $stmt->execute($params);
     }
     catch(PDOException $e){
@@ -740,6 +867,25 @@ public function fingerprint(){
       $stmt=$this->conn->prepare("SELECT COUNT(*) as count,purchase_order_id FROM inventory
       WHERE product_id=?");
       $params=array($productId);
+      $stmt->execute($params);
+      $stmt->setFetchMode(PDO::FETCH_ASSOC);
+      $resultSet=$stmt->fetch();
+      if($resultSet['count']>0){
+        return $resultSet;
+      }
+      else{
+        return 0;
+      }
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function checkIfProductBatchExistsInInventory($productId,$batch){
+    try{
+      $stmt=$this->conn->prepare("SELECT COUNT(*) as count,product_id,batch_no FROM inventory
+      WHERE product_id=? AND batch_no=? LIMIT 1");
+      $params=array($productId,$batch);
       $stmt->execute($params);
       $stmt->setFetchMode(PDO::FETCH_ASSOC);
       $resultSet=$stmt->fetch();
@@ -780,7 +926,7 @@ public function fingerprint(){
   }
   function getSalesOderDetailsByOrderId($id){
     try{
-      $stmt=$this->conn->prepare("SELECT sod.discount,sod.buying_price,sod.quantity,sod.price,p.description,p.name,sod.payment,p.id FROM  sales_order_details sod
+      $stmt=$this->conn->prepare("SELECT sod.*,p.description,p.name,p.id FROM  sales_order_details sod
       INNER JOIN product p ON sod.product_id=p.id
       WHERE sales_order_id=?");
       $params=array($id);
@@ -821,12 +967,49 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function getAllUsers(){
+  function getAllUsersByUsername($name,$start,$rows_per_page){
     try{
       $stmt=$this->conn->prepare("SELECT user.*,sec.secrolename as role FROM user
-      INNER JOIN securityroles sec ON user.secroleid=sec.secroleid");
-      $stmt->execute();
+      INNER JOIN securityroles sec ON user.secroleid=sec.secroleid
+      WHERE user_name LIKE ? LIMIT ?,?");
+      $params=array($name,$start,$rows_per_page);
+      $stmt->execute($params);
       return $stmt->fetchALL();
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function countAllUsersByUsername($name){
+    try{
+      $stmt=$this->conn->prepare("SELECT COUNT(*) as count FROM user WHERE user_name LIKE ?");
+      $params=array($name);
+      $stmt->execute($params);
+      $stmt->setFetchMode(PDO::FETCH_ASSOC);
+      return $stmt->fetch();
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function getAllUsers($start,$rows_per_page){
+    try{
+      $stmt=$this->conn->prepare("SELECT user.*,sec.secrolename as role FROM user
+      INNER JOIN securityroles sec ON user.secroleid=sec.secroleid LIMIT ?,?");
+      $params=array($start,$rows_per_page);
+      $stmt->execute($params);
+      return $stmt->fetchALL();
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function getAllUsersCount(){
+    try{
+      $stmt=$this->conn->prepare("SELECT COUNT(*) as count FROM user");
+      $stmt->execute();
+      $stmt->setFetchMode(PDO::FETCH_ASSOC);
+      return $stmt->fetch();
     }
     catch(PDOException $e){
       echo $e->getMessage();
@@ -848,6 +1031,16 @@ public function fingerprint(){
       $date=date('Y-m-d');
       $stmt=$this->conn->prepare("INSERT INTO user (user_name,user_pw,secroleid,date_created) VALUES(?,?,?,?)");
        $params=array($user_name,$user_pw,$secroleid,$date);
+       $stmt->execute($params);
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function saveLocation($name){
+    try{
+      $stmt=$this->conn->prepare("INSERT INTO location (name) VALUES(?)");
+       $params=array($name);
        $stmt->execute($params);
     }
     catch(PDOException $e){
@@ -898,10 +1091,10 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function savePurchaseOrder($entry_date,$supplier){
+  function savePurchaseOrder($entry_date,$supplier,$location){
     try{
-      $stmt=$this->conn->prepare("INSERT INTO purchase_order (entry_date,supplier_id) VALUES (?,?)");
-      $params=array($entry_date,$supplier);
+      $stmt=$this->conn->prepare("INSERT INTO purchase_order (entry_date,supplier_id,location_id) VALUES (?,?,?)");
+      $params=array($entry_date,$supplier,$location);
       $stmt->execute($params);
       return $this->conn->lastInsertId();
     }
@@ -909,10 +1102,11 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function saveInventory($lastId,$product,$quantity,$expiry_date,$batch_no){
+  function saveInventory($product,$quantity,$expiry_date,$batch_no,$bonus,$location,$discount){
     try{
-      $stmt=$this->conn->prepare("INSERT INTO inventory (purchase_order_id,product_id,quantity,expiry_date,batch_no) VALUES (?,?,?,?,?)");
-      $params=array($lastId,$product,$quantity,$expiry_date,$batch_no);
+      $stmt=$this->conn->prepare("INSERT INTO inventory (product_id,quantity,expiry_date,batch_no,bonus,location_id,discount)
+       VALUES (?,?,?,?,?,?,?)");
+      $params=array($product,$quantity,$expiry_date,$batch_no,$bonus,$location,$discount);
       $stmt->execute($params);
     }
     catch(PDOException $e){
@@ -921,9 +1115,9 @@ public function fingerprint(){
   }
   function getPurchaseOderDetailsByOrderId($id){
     try{
-      $stmt=$this->conn->prepare("SELECT inv.quantity,inv.expiry_date,inv.batch_no,p.name,p.id,p.buying_price FROM  inventory inv
-      INNER JOIN product p ON inv.product_id=p.id
-      WHERE inv.purchase_order_id=?");
+      $stmt=$this->conn->prepare("SELECT pod.*,p.name,p.id FROM  purchase_order_details pod
+      INNER JOIN product p ON pod.product_id=p.id
+      WHERE pod.purchase_order_id=?");
       $params=array($id);
       $stmt->execute($params);
       return $stmt->fetchALL();
@@ -1011,6 +1205,16 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
+  function updateLocation($name,$location,$current_location){
+    try{
+      $stmt=$this->conn->prepare("UPDATE location SET name=? WHERE name=? AND id !=?");
+      $params=array($name,$location,$current_location);
+      $stmt->execute($params);
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
   function saveNewClient($name,$address,$phoneNo,$user){
     try{
       $stmt=$this->conn->prepare("INSERT INTO client (name,address,phone_no,user_name) VALUES(?,?,?,?)");
@@ -1055,7 +1259,19 @@ public function fingerprint(){
       echo $e->getMessage();
     }
   }
-  function getAllClients(){
+  function countAllLocationClients($location){
+    try{
+      $stmt=$this->conn->prepare("SELECT COUNT(*) as count FROM client WHERE location_id=?");
+      $params=array($location);
+      $stmt->execute($params);
+      $stmt->setFetchMode(PDO::FETCH_ASSOC);
+      return $stmt->fetch();
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function getAllClients($start,$rows_per_page,$location){
     try{
       $stmt=$this->conn->prepare("SELECT cl.*,
         (SELECT SUM(sod.amount) as required_payment FROM sales_order so
@@ -1065,8 +1281,9 @@ public function fingerprint(){
         INNER JOIN sales_order_details sod ON so.sales_order_id=sod.sales_order_id
         WHERE so.client=cl.user_name) as paid,
         (SELECT required-paid ) as balance
-        FROM client cl ORDER BY balance DESC");
-      $stmt->execute();
+        FROM client cl WHERE cl.location_id=? ORDER BY balance DESC LIMIT ?,?");
+        $params=array($location,$start,$rows_per_page);
+      $stmt->execute($params);
       return $stmt->fetchALL();
     }
     catch(PDOException $e){
@@ -1080,6 +1297,27 @@ public function fingerprint(){
       $stmt->execute($params);
       $stmt->setFetchMode(PDO::FETCH_ASSOC);
       return $stmt->fetch();
+    }
+    catch(PDOException $e){
+      echo $e->getMessage();
+    }
+  }
+  function getClientsByName($name){
+    try{
+        $stmt=$this->conn->prepare("SELECT cl.*,
+        (SELECT SUM(sod.amount) as required_payment FROM sales_order so
+        INNER JOIN sales_order_details sod ON so.sales_order_id=sod.sales_order_id
+        WHERE so.client=cl.user_name) as required,
+        (SELECT SUM(sod.payment) as total_paid FROM sales_order so
+        INNER JOIN sales_order_details sod ON so.sales_order_id=sod.sales_order_id
+        WHERE so.client=cl.user_name) as paid,
+        (SELECT required-paid ) as balance
+        FROM client cl WHERE name LIKE ? ORDER BY balance DESC");
+        $name='%'.$name.'%';
+        $params=array($name);
+      $stmt->execute($params);
+      return $stmt->fetchALL();
+
     }
     catch(PDOException $e){
       echo $e->getMessage();

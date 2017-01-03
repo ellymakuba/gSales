@@ -7,18 +7,23 @@
 	if (isset($_POST['receive'])){
 		if(isset($_POST['entry_date']) && isset($_POST['supplier'])){
 			$entry_date=date('Y-m-d',strtotime($_POST['entry_date']));
-			$lastId=$dao->savePurchaseOrder($entry_date,$_POST['supplier']);
+			$lastId=$dao->savePurchaseOrder($entry_date,$_POST['supplier'],$_SESSION['log_location']['id']);
 		$i=0;
-		foreach($_POST['product'] as $value) {
-			if(isset($_POST['product'][$i]) && isset($_POST['quantity'][$i]) && isset($_POST['expiry_date'][$i]) && isset($_POST['batch_no'][$i])){
+		foreach($_POST['product'] as $value){
+			if(isset($_POST['product'][$i]) && isset($_POST['number'][$i]) && isset($_POST['expiry_date'][$i]) && isset($_POST['batch_no'][$i])){
 				$expiry_date=date('Y-m-d',strtotime($_POST['expiry_date'][$i]));
-				$productExists=$dao->checkIfProductExistsInInventory($_POST['product'][$i]);
+				$dao->savePurchaseOrderDetails($lastId,$_POST['product'][$i],$expiry_date,$_POST['batch_no'][$i],
+				$_POST['number'][$i],$_POST['units'][$i],$_POST['price'][$i],$_POST['discount'][$i],$_POST['amount'][$i],$_POST['bonus'][$i]);
+				$productExists=$dao->checkIfProductBatchExistsInInventory($_POST['product'][$i],$_POST['batch_no'][$i]);
+				$number=$_POST['number'][$i]+$_POST['bonus'][$i];
+				$quantity=$_POST['units'][$i]*$number;
+				$discount=$_POST['discount'][$i]/$_POST['amount'][$i];
 				if($productExists['count']>0){
-					$dao->addStockToInventory($productExists['purchase_order_id'],$lastId,$_POST['batch_no'][$i],$_POST['product'][$i],
-					$_POST['quantity'][$i],$_POST['expiry_date'][$i]);
+					$dao->addStockToInventory($productExists['product_id'],$productExists['batch_no'],$quantity,$_POST['bonus'][$i],$discount);
 				}
 				else{
-				$dao->saveInventory($lastId,$_POST['product'][$i],$_POST['quantity'][$i],$expiry_date,$_POST['batch_no'][$i]);
+					$dao->saveInventory($_POST['product'][$i],$quantity,$expiry_date,$_POST['batch_no'][$i],$_POST['bonus'][$i],
+					$_SESSION['log_location']['id'],$discount);
 			}
 			}
 			$i++;
@@ -26,18 +31,18 @@
 		unset($_SESSION['purchaseOrder']);
 		unset($_SESSION['existing_order']);
 		unset($_SESSION['purchaseOrderUpdated']);
-		header("Location:purchase_order_list.php");
+		header("Location:manage_purchase_order.php");
 	}
 	}
-	if(isset($_POST['update']) && isset($_SESSION['existing_order'])){
+/*	if(isset($_POST['update']) && isset($_SESSION['existing_order'])){
 		$i=0;
 		if(isset($_POST['entry_date']) && isset($_POST['supplier'])){
 		$entry_date=date('Y-m-d',strtotime($_POST['entry_date']));
-		foreach($_POST['product'] as $value) {
-			if(isset($_POST['product'][$i]) && isset($_POST['quantity'][$i]) && isset($_POST['batch_no'][$i])){
-				$productExists=$dao->checkIfProductExistsInInventory($_POST['quantity'][$i]);
+		foreach($_POST['product'] as $value){
+			if(isset($_POST['product'][$i]) && isset($_POST['number'][$i]) && isset($_POST['batch_no'][$i])){
+				$productExists=$dao->checkIfProductExistsInInventory($_POST['number'][$i]);
 				if(count($productExists)>0){
-					$dao->updatePurchaseOrder($_SESSION['existing_order'],$_POST['product'][$i],$_POST['quantity'][$i],$_POST['batch_no'][$i]);
+					$dao->updatePurchaseOrder($_SESSION['existing_order'],$_POST['product'][$i],$_POST['number'][$i],$_POST['batch_no'][$i]);
 				}
 			}
 			$i++;
@@ -46,8 +51,8 @@
 	unset($_SESSION['purchaseOrder']);
 	unset($_SESSION['existing_order']);
 	unset($_SESSION['purchaseOrderUpdated']);
-	//header("Location:purchase_order_list.php");
-	}
+	header("Location:manage_purchase_order.php");
+} */
   ?>
   <html>
   <?PHP $dao->includeHead('Purchase Order',0) ?>
@@ -143,22 +148,52 @@ $("#supplier").change(function(){
 	 success:function(result){}
  });
 });
-$(".quantity").change(function(){
+$(".number").change(function(){
 	var totalAmount=0;
-	var quantityId=$(this).attr("id");
-	var id=quantityId.substring(quantityId.indexOf("_")+1);
-	document.getElementById("amount_"+id).value=parseInt($(this).val())*parseInt($("#price_"+id).val());
+	var numberId=$(this).attr("id");
+	var id=numberId.substring(numberId.indexOf("_")+1);
+	var amount_before_discount=parseInt($(this).val())*parseInt($("#price_"+id).val());
+	document.getElementById("amount_"+id).value=amount_before_discount-parseInt($("#discount_"+id).val());
 	$(".amount").each(function(){
 		totalAmount +=Number($(this).val());
 	});
 	var value=$(this).val();
 	$.ajax({
 	 type:"GET",
-	 url:"purchase_order.php?update_cart="+id+"&quantity="+value,
+	 url:"purchase_order.php?update_cart="+id+"&number="+value,
 	 success:function(result){
 	 }
  });
 	document.getElementById("total").value=totalAmount;
+});
+$(".discount").change(function(){
+	var totalAmount=0;
+	var numberId=$(this).attr("id");
+	var id=numberId.substring(numberId.indexOf("_")+1);
+	var amount_before_discount=parseInt($("#number_"+id).val())*parseInt($("#price_"+id).val());
+	document.getElementById("amount_"+id).value=amount_before_discount-parseInt($(this).val());
+	$(".amount").each(function(){
+		totalAmount +=Number($(this).val());
+	});
+	var value=$(this).val();
+	$.ajax({
+	 type:"GET",
+	 url:"purchase_order.php?update_discount="+id+"&discount="+value,
+	 success:function(result){
+	 }
+ });
+	document.getElementById("total").value=totalAmount;
+});
+$(".bonus").change(function(){
+	var numberId=$(this).attr("id");
+	var id=numberId.substring(numberId.indexOf("_")+1);	
+	var value=$(this).val();
+	$.ajax({
+	 type:"GET",
+	 url:"purchase_order.php?update_bonus="+id+"&bonus="+value,
+	 success:function(result){
+	 }
+ });
 });
 $(document).on("click", "#save", function(e) {
 		bootbox.confirmation("Are you sure?", function() {
@@ -170,7 +205,8 @@ $(".amount").each(function(){
 	$lineTotal=0;
 	var amountId=$(this).attr("id");
 	var id=amountId.substring(amountId.indexOf("_")+1);
-	$lineTotal=parseInt($("#quantity_"+id).val())*parseInt($("#price_"+id).val());
+	var amount_before_discount=parseInt($("#number_"+id).val())*parseInt($("#price_"+id).val());
+	$lineTotal=amount_before_discount-parseInt($("#discount_"+id).val());
 	document.getElementById("amount_"+id).value=$lineTotal;
 	tAmount +=$lineTotal;
 });
@@ -192,7 +228,7 @@ document.getElementById("total").value=tAmount;
 			 </form>
 			 </div>';
 		 }
-			echo '<form class="form-signin" method="POST"  action="'.$_SERVER['PHP_SELF'].'" id="purchase_order_cart_form">';
+			echo '<form method="POST"  action="'.$_SERVER['PHP_SELF'].'" id="purchase_order_cart_form">';
 				if (!isset($_SESSION['purchaseOrder'])){
 					 $_SESSION['purchaseOrder'] = new PurchaseOrderCart();
 				}
@@ -201,9 +237,9 @@ document.getElementById("total").value=tAmount;
 				if(isset($_GET['add_cart'])){
 				$SearchString =$_GET['add_cart'];
 				$product=$dao->getProductByName($SearchString);
+				echo $product['name'];
 				$AlreadyOnThisCart =0;
-				echo 'product is '.$product['name'];
-				$quantity=1;
+				$number=1;
 				if (count($_SESSION['purchaseOrder']->LineItems)>0){
 					   foreach ($_SESSION['purchaseOrder']->LineItems AS $OrderItem)
 						    {
@@ -217,9 +253,10 @@ document.getElementById("total").value=tAmount;
 						 }
 						if ($AlreadyOnThisCart!=1)
 						{
-							$_SESSION['purchaseOrder']->add_to_cart($product['id'],$quantity,$product['name'],$product['buying_price'],'','',-1);
+							$_SESSION['purchaseOrder']->add_to_cart($product['id'],$number,$product['name'],$product['buying_price_pack'],'','',0,0,
+							$product['units_per_pack'],-1);
 						}
-				}//end of if(isset($_POST['add_cart]))
+				}
 				echo '</form>';
 				if(!isset($_SESSION['purchaseOrderUpdated'])){
 					$_SESSION['purchaseOrderUpdated']=0;
@@ -231,8 +268,20 @@ document.getElementById("total").value=tAmount;
 				}
 				if (isset($_GET['update_cart']) && isset($_SESSION['purchaseOrder']))
 				{
-					$quantity=$dao->sanitize($_GET['quantity']);
-					$_SESSION['purchaseOrder']->update_cart($_GET['update_cart'],$quantity);
+					$number=$dao->sanitize($_GET['number']);
+					$_SESSION['purchaseOrder']->update_cart($_GET['update_cart'],$number);
+					$_SESSION['purchaseOrderUpdated']=1;
+				}
+				if (isset($_GET['update_discount']) && isset($_SESSION['purchaseOrder']))
+				{
+					$discount=$dao->sanitize($_GET['discount']);
+					$_SESSION['purchaseOrder']->update_discount($_GET['update_discount'],$discount);
+					$_SESSION['purchaseOrderUpdated']=1;
+				}
+				if (isset($_GET['update_bonus']) && isset($_SESSION['purchaseOrder']))
+				{
+					$bonus=$dao->sanitize($_GET['bonus']);
+					$_SESSION['purchaseOrder']->update_bonus($_GET['update_bonus'],$bonus);
 					$_SESSION['purchaseOrderUpdated']=1;
 				}
 				if (isset($_GET['set_date']) && isset($_SESSION['purchaseOrder']))
@@ -271,7 +320,8 @@ document.getElementById("total").value=tAmount;
 					$_SESSION['purchaseOrder']->orderDate=$purchaseOrder['entry_date'];
 					$_SESSION['purchaseOrder']->setSupplier($purchaseOrder['supplier_id']);
 					foreach($orderProducts as $product){
-						$_SESSION['purchaseOrder']->add_to_cart($product['id'],$product['quantity'],$product['name'],$product['buying_price'],$product['expiry_date'],$product['batch_no'],-1);
+						$_SESSION['purchaseOrder']->add_to_cart($product['id'],$product['number_purchased'],$product['name'],$product['price'],$product['expiry_date'],$product['batch_no'],
+						$product['discount'],$product['bonus'],$product['units'],-1);
 					}
 				}
 				}
@@ -301,13 +351,16 @@ document.getElementById("total").value=tAmount;
 					if (count($_SESSION['purchaseOrder']->LineItems)>0)
 					{
 				?>
-				<table id="purchase_order_table" style="border-spacing:2px;border-collapse:separate;width:100%;">
+				<table class="table_condensed" id="purchase_order_table" style="border-spacing:2px;border-collapse:separate;width:100%;">
 					<thead>
-            <tr><th>Product</th>
+            <tr><th style="width:25%;">Product</th>
 							<th>Expiry Date</th>
 							<th>Batch No</th>
-							<th>Quantity</th>
+							<th>Number</th>
+							<th>Units</th>
+							<th>Bonus</th>
 							<th>Price</th>
+							<th>Disc</th>
 							<th>Amount</th>
 						</tr>
           </head>
@@ -323,17 +376,29 @@ document.getElementById("total").value=tAmount;
  				required readonly/>
  				 </td>
 				 <td><input type="text"  class="form-control myDate expiryDate" placeholder="Expiry Date" value="<?php echo $order->expiryDate ?>"
- 					 name="expiry_date[]" id="expiry_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;" readonly=""/>
+ 					 name="expiry_date[]" id="expiry_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"/>
  				 </td>
          <td><input type="text"  class="form-control batchNo" placeholder="Batch No" value="<?php echo $order->batchNo?>"
  					 name="batch_no[]" id="batch_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"/>
  				 </td>
-				 <td><input type="number"  class="form-control quantity" placeholder="Quantity"
- 					 name="quantity[]" id="quantity_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"
-					 value="<?php echo $order->Quantity ?>" required="" />
+				 <td><input type="number"  class="form-control number" placeholder="number"
+ 					 name="number[]" id="number_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"
+					 value="<?php echo $order->number ?>" required="" />
+ 				 </td>
+				 <td><input type="number"  class="form-control units" placeholder="Units"
+ 					 name="units[]" id="units_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"
+					 value="<?php echo $order->units ?>" required="" readonly=""/>
+ 				 </td>
+				 <td><input type="number"  class="form-control bonus" placeholder="bonus"
+ 					 name="bonus[]" id="bonus_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"
+					 value="<?php echo $order->bonus ?>" required="" />
  				 </td>
 				 <td><input type="text"  class="form-control" placeholder="Price"
  					 name="price[]" id="price_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;" value="<?php echo $order->Price ?>" readonly/>
+ 				 </td>
+				 <td><input type="number"  class="form-control discount" placeholder="Discount"
+ 					 name="discount[]" id="discount_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;"
+					 value="<?php echo $order->discount ?>" required="" />
  				 </td>
 				 <td><input type="text"  class="form-control amount" placeholder="Amount"
  					 name="amount[]" id="amount_<?php echo $order->LineNumber ?>" style="margin-right:20px;margin-top:10px;" required=""/>
@@ -359,8 +424,10 @@ document.getElementById("total").value=tAmount;
 				?>
 				<br><br>
 				<?php if(isset($_SESSION['existing_order'])){
+					/*
 					echo '<button type="submit" name="update" id="order" class="btn btn-lg btn-primary"
 						style="display: block; margin: 0 auto;width:200px;"><span class="fa fa-times"></span>Update Order</button>';
+						*/
 				}
 				else{
 					echo '<button type="submit" name="receive" id="order" class="btn btn-lg btn-primary"

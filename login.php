@@ -2,15 +2,15 @@
 <?PHP
 	session_start();
 	require 'data_access_object.php';
-	$dao=new DAO();;
-
+	$dao=new DAO();
 	if(isset($_POST['login'])){
 		// Sanitize user input
 		$username = $_POST['log_user'];
 		$password = $_POST['log_pw'];
+		$location=$_POST['location'];
 		$fingerprint=$dao->fingerprint();
 		// Select user details from USER
-		$user=$dao->getUserByUsernameAndPassword($username, $password);
+		$user=$dao->getUserByUsernameAndPassword($username,$password,$location);
 		if($user){
 			// Define Session Variables for this User
 			$_SESSION['log_user'] = $username;
@@ -21,6 +21,8 @@
 			$_SESSION['log_delete'] = $user['ugroup_delete'];
 			$_SESSION['log_report'] = $user['ugroup_report'];
 			$_SESSION['log_fingerprint'] = $fingerprint;
+			$company=$dao->getLocationById($location);
+			$_SESSION['log_location'] = $company;
 
 			$user=$dao->getUserByUserName($_SESSION['log_user']);
 	    $dao->getUserRole($user['user_id']);
@@ -40,7 +42,8 @@
 <head>
 	<meta charset="utf-8">
 </head>
-	<?PHP $dao->includeHead('Login') ?>
+	<?PHP $dao->includeHead('Login')
+	?>
 	<body class="container" style="background:#bd7874;">
 		<h2 style="text-align:center;font-weight:bold;color:white;">Welcome to webafriq POS</h2>
 		<div id="login">
@@ -53,6 +56,19 @@
 				<div class="form-inline">
 					<label for="log_pw">Password:</label>
 					<input type="password" name="log_pw" style="width:70%;float:right;" class="form-control" required=""/>
+				</div>
+				<div style="clear:both;"></div>
+				<div class="form-inline">
+					<label for="location">Location:</label>
+				<select  name="location" class="form-control" style="width:70%;float:right;" required>
+					<option disabled selected>Select Location</option>
+					<?php
+					$locations=$dao->getAllLocations();
+					foreach($locations as $location){
+							echo '<option value="'.$location['id'].'">'.$location['name'].'</option>';
+					}
+					?>
+				</select>
 				</div>
 				<div style="clear:both;"></div>
 				<input type="submit" name="login" class="btn btn-default btn-primary"

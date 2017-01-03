@@ -52,7 +52,7 @@
 	</script>
   </head>
   <body class="container">
-    <?PHP $dao->includeMenu($_SESSION['tab_no']); 
+    <?PHP $dao->includeMenu($_SESSION['tab_no']);
 			if(!isset($_SESSION['errors'])){
 				$_SESSION['errors']=array();
 			}

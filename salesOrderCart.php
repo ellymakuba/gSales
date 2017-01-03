@@ -19,7 +19,8 @@ Class Cart {
 		$this->deliveryStarted=0;
 		$this->cashPayment=0;
 	}
-	function add_to_cart($productID,$Qty,$Descr,$Price,$Disc,$quantityDelivered,$requested,$payment,$paid,$bP,$name,$LineNumber=-1){
+	function add_to_cart($productID,$Qty,$Descr,$Price,$Disc,$quantityDelivered,$requested,$payment,$paid,$bP,$name,$batch,
+	$tax,$discP,$LineNumber=-1){
 		if (isset($productID) AND $productID!="" AND isset($Qty)){
 			if ($Price<0){
 				$Price=0;
@@ -27,7 +28,8 @@ Class Cart {
 			if ($LineNumber==-1){
 				$LineNumber = $this->LineCounter;
 			}
-			$this->LineItems[$LineNumber] = new LineDetails($LineNumber,$productID,$Descr,$Qty,$Price,$Disc,$quantityDelivered,$requested,$payment,$paid,$bP,$name);
+			$this->LineItems[$LineNumber] = new LineDetails($LineNumber,$productID,$Descr,$Qty,$Price,$Disc,$quantityDelivered,$requested,
+			$payment,$paid,$bP,$name,$batch,$tax,$discP);
 			$this->ItemsOrdered++;
 			$this->LineCounter = $LineNumber + 1;
 			Return 1;
@@ -43,6 +45,9 @@ Class Cart {
 	}
 	function update_paid($UpdateLineNumber,$payment){
 		$this->LineItems[$UpdateLineNumber]->payment= $payment;
+	}
+	function update_discount($UpdateLineNumber,$disc){
+		$this->LineItems[$UpdateLineNumber]->Discount= $disc;
 	}
 	function remove_from_cart($LineNumber){
 		if (!isset($LineNumber) || $LineNumber=='' || $LineNumber < 0){
@@ -69,8 +74,12 @@ Class LineDetails {
 	var $paid;
 	var $buyingPrice;
 	var $name;
+	var $batch;
+	var $tax;
+	var $percentageDiscount;
 
-	function LineDetails ($LineNumber,$productID,$Descr,$Qty,$Prc,$Disc,$quantityDelivered,$requested,$payment,$paid,$bP,$name){
+	function LineDetails ($LineNumber,$productID,$Descr,$Qty,$Prc,$Disc,$quantityDelivered,$requested,$payment,$paid,$bP,$name,
+	$batch,$tax,$discP){
 		$this->LineNumber = $LineNumber;
 		$this->productID =$productID;
 		$this->ItemDescription = $Descr;
@@ -83,6 +92,9 @@ Class LineDetails {
 		$this->paid=$paid;
 		$this->buyingPrice=$bP;
 		$this->name=$name;
+		$this->batch=$batch;
+		$this->tax=$tax;
+		$this->percentageDiscount=$discP;
 	} //end constructor function for LineDetails
 }
 ?>

@@ -5,18 +5,22 @@ class ProductClass{
   var $description;
   var $buyingPrice;
   var $sellingPrice;
+  var $unitsPerPack;
   var $company;
   var $image;
   var $reorderLevel;
+  var $packBuyingPrice;
   function ProductClass(){
   $this->name="";
   $this->category="";
   $this->description="";
   $this->buyingPrice=0.00;
+  $this->packBuyingPrice=0.00;
   $this->sellingPrice=0.00;
   $this->company="";
   $this->image="";
   $this->reorderLevel=0;
+  $this->unitsPerPack=0;
   }
   function getName(){
     return $this->name;
@@ -42,11 +46,23 @@ class ProductClass{
   function setBuyingPrice($bp){
     $this->buyingPrice=$bp;
   }
+  function getPackBuyingPrice(){
+    return $this->packBuyingPrice;
+  }
+  function setPackBuyingPrice($packBP){
+    $this->packBuyingPrice=$packBP;
+  }
   function getSellingPrice(){
     return $this->sellingPrice;
   }
   function setSellingPrice($sp){
     $this->sellingPrice=$sp;
+  }
+  function getUnitsPerPack(){
+    return $this->unitsPerPack;
+  }
+  function setUnitsPerPack($units){
+    $this->unitsPerPack=$units;
   }
   function getCompany(){
     return $this->company;

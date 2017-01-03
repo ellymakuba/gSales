@@ -21,15 +21,15 @@ Class PurchaseOrderCart {
 	public function setSupplier($supplier){
 		$this->supplier=$supplier;
 	}
-	function add_to_cart($productID,$Qty,$Descr,$Price,$exp,$batch,$LineNumber=-1){
-		if (isset($productID) AND $productID!="" AND isset($Qty)){
+	function add_to_cart($productID,$number,$Descr,$Price,$exp,$batch,$discount,$bonus,$units,$LineNumber=-1){
+		if (isset($productID) AND $productID!="" AND isset($number)){
 			if ($Price<0){
 				$Price=0;
 			}
 			if ($LineNumber==-1){
 				$LineNumber = $this->LineCounter;
 			}
-			$this->LineItems[$LineNumber] = new PurchaseOrderLineDetails($LineNumber,$productID,$Descr,$Qty,$Price,$exp,$batch);
+			$this->LineItems[$LineNumber] = new PurchaseOrderLineDetails($LineNumber,$productID,$Descr,$number,$Price,$exp,$batch,$discount,$bonus,$units);
 			$this->ItemsOrdered++;
 			$this->LineCounter = $LineNumber + 1;
 			Return 1;
@@ -39,8 +39,14 @@ Class PurchaseOrderCart {
 	function setDeliveryDate($date){
 		$this->orderDate=$date;
 	}
-	function update_cart($UpdateLineNumber,$Qty){
-		$this->LineItems[$UpdateLineNumber]->Quantity= $Qty;
+	function update_cart($UpdateLineNumber,$number){
+		$this->LineItems[$UpdateLineNumber]->number= $number;
+	}
+	function update_discount($UpdateLineNumber,$disc){
+		$this->LineItems[$UpdateLineNumber]->discount= $disc;
+	}
+	function update_bonus($UpdateLineNumber,$bonus){
+		$this->LineItems[$UpdateLineNumber]->bonus= $bonus;
 	}
 	function setLineItemExpiryDate($UpdateLineNumber,$exp){
 		$this->LineItems[$UpdateLineNumber]->expiryDate= $exp;
@@ -60,21 +66,26 @@ Class PurchaseOrderLineDetails {
 	Var $LineNumber;
 	Var $productID;
 	Var $ItemDescription;
-	Var $Quantity;
+	Var $number;
 	Var $Price;
-	Var $Units;
 	Var $POLine;
 	var $expiryDate;
 	var $batchNo;
+	var $discount;
+	var $bonus;
+	var $units;
 
-	function PurchaseOrderLineDetails($LineNumber,$productID,$Descr,$Qty,$Prc,$exp,$batch){
+	function PurchaseOrderLineDetails($LineNumber,$productID,$Descr,$number,$Prc,$exp,$batch,$discount,$bonus,$units){
 		$this->LineNumber = $LineNumber;
 		$this->productID =$productID;
 		$this->ItemDescription = $Descr;
-		$this->Quantity = $Qty;
+		$this->number= $number;
 		$this->Price = $Prc;
 		$this->expiryDate=$exp;
 		$this->batchNo=$batch;
-	} //end constructor function for LineDetails
+		$this->discount=$discount;
+		$this->bonus=$bonus;
+		$this->units=$units;
+	}
 }
 ?>

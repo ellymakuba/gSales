@@ -10,22 +10,13 @@
   </head>
   <body class="container">
     <?PHP $dao->includeMenu($_SESSION['tab_no']);
-    ?>
-  	<div id="menu_main">
-			<a href="cash_sale.php">Cash Sale</a>
-			<a href="credit_sale.php">Credit Sale</a>
-			<a href="client_list.php">Client List</a>
-			<a href="receipt.php" id="item_selected">Receipt</a>
-      </div>
-			<?php
-			if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){
+    if(in_array($pageSecurity, $_SESSION['AllowedPageSecurityTokens'])){
 			if (!isset($_SESSION['salesOrder'])){
 				 $_SESSION['salesOrder'] = new Cart();
 				 $_SESSION['salesOrder']->orderDate=date('m/d/Y');
 				 $_SESSION['salesOrderUpdated']=0;
 			}
 			if(isset($_GET['SelectedOrder'])){
-				$_SESSION['existing_order']=$_GET['SelectedOrder'];
 				if($_SESSION['salesOrderUpdated']==0){
 					$_SESSION['salesOrder'] = new Cart();
 					$salesOrder=$dao->getSalesOrderById($_GET['SelectedOrder']);
@@ -33,7 +24,7 @@
 					$_SESSION['salesOrder']->orderDate=$salesOrder['date_required'];
 				foreach($orderProducts as $product){
 					$_SESSION['salesOrder']->add_to_cart($product['id'],$product['quantity'],$product['description'],$product['price'],$product['discount'],
-					0,0,0,0,$product['buying_price'],$product['name'],-1);
+					0,0,0,0,$product['buying_price'],$product['name'],$product['batch_no'],$product['tax'],0,-1);
 				}
 			}
 			}
@@ -70,11 +61,9 @@
 		 				 <td><?php echo $amount ?></td>
 		 				</tr>;
 		 			 	<?php }?>
-				 		<tr></tr><tr></tr><tr></tr>
-					 	<tr><td>Total: <?php echo number_format($_SESSION['total'],2) ?></td></tr>
-						<tr><td>Paid: <?php echo number_format($_SESSION['paid'],2) ?></td></tr>
-						<tr><td>Balance: <?php echo number_format($_SESSION['balance'],2) ?></td></tr>
-			 		</tr>
+					 	<tr><td>Paid: <?php echo number_format($_REQUEST['paid'],2) ?></td></tr>
+						<tr><td>Total: <?php echo number_format($_REQUEST['total'],2) ?></td></tr>
+						<tr><td>Balance: <?php echo number_format($balance,2) ?></td></tr>
          </tbody>
          </table>
 			 </div>

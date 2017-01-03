@@ -16,7 +16,7 @@ html {
 body {
 	background-color:#bd7874;
 	width:100%;
-	border: 5px outset black;
+	border: 5px groove white;
 	padding:5px 5px 5px 5px;
 	margin:10px 0px 10px 0px;
 }

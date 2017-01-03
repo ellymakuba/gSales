@@ -59,7 +59,7 @@
 		$(document).on("click", "#product_search", function() {
 		$(this).autocomplete({
 	 		source:function(request,response){
-	 	$.getJSON("searchInventory.php?term="+request.term,function(result){
+	 	$.getJSON("searchInventory.php?product="+request.term+"&location="+$("#location").val(),function(result){
 		 response($.map(result,function(item){
 		 	return{
 			id:item.id,
@@ -229,6 +229,7 @@ $("#paid").change(function(){
 			 $client=$dao->getClientById($_SESSION['selectedClient']); ?>
 			 <form class="form-signin" method="POST"  action="<?php echo $_SERVER['PHP_SELF']?>">
          <h2 class="form-signin-heading">Credit Sale to <?php echo $client['name'] ?></h2>
+				 <input type="hidden" name="location" id="location" value="<?php echo $_SESSION['log_location']['id']; ?>"/>
          <label for="entry_date">Date</label>
          <input type="text"  class="form-control" placeholder="Entry Date" value="<?php echo $_SESSION['salesOrder']->orderDate; ?>"
  					 name="entry_date" id="entry_date" style="margin-right:20px;margin-top:10px;"  required=""/>
